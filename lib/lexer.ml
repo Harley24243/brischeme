@@ -1,15 +1,4 @@
-
-type primop =
-  | Plus
-  | Minus
-  | Times
-  | Divide
-  | Eq
-  | Less
-  | If
-  | And
-  | Or
-  | Not
+open Ast
 
 type token =
   | TkIdent of string

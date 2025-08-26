@@ -44,7 +44,7 @@ let rec eval_sexp (e:env) (s:sexp) : sval =
               let e'' = (x, v2) :: e' @ e in
                 eval_sexp e'' bdy
         | _ -> raise (EvalFailure "Operator of application must be a lambda."))
-  | _ -> raise (EvalFailure (print_sexp s))
+  | _ -> raise (EvalFailure (string_of_sexp s))
 
 let eval_form (e:env) (f:form) : sval * env =
   match f with
