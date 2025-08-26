@@ -13,7 +13,6 @@ let rec repl (e:env) =
       let inp = read_line () in
       (* print ast *)
         let ast = parse inp in
-          (*print_endline (print_prog ast);*)
           let vs, e' = eval_prog e ast in
             List.iter (fun v -> print_endline (string_of_sval v)) vs;
             repl e'
