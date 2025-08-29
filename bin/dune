@@ -1,4 +1,4 @@
 (executable
- (public_name scheme)
+ (public_name brischeme)
  (name main)
- (libraries scheme))
+ (libraries brischeme))

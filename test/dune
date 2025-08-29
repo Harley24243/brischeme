@@ -1,2 +1,2 @@
-(test
- (name test_scheme))
+(cram
+ (deps %{bin:brischeme}))

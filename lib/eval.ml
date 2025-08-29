@@ -1,63 +1,107 @@
-
 open Ast
 
-exception EvalFailure of string
+(** 
+    An [store] is just a list of pairs [(x, v)] with [x] a variable and [v] an
+    expression.  We require that [v] is moreover a value, but this is not
+    enforced by the types. 
+*)
+type store = (var * sexp) list
 
-type sval =
-  | VNum of int
-  | VBool of bool
-  | VClo of var * sexp * env
-
-and env = (var * sval) list
-
-let rec eval_sexp (e:env) (s:sexp) : sval =
+(** [is_value s] is true just if [s] is a value *)
+let is_value (s:sexp) : bool =
   match s with
-  | Bool b -> VBool b
-  | Num n -> VNum n
-  | Ident x -> 
-      (match List.assoc_opt x e with
-      | None -> raise (EvalFailure "Identifier not in scope.")
-      | Some v -> v)
-  | Lambda (x, t) -> VClo (x, t, e)
-  | Call (If, [s1; s2; s3]) ->
-      (match eval_sexp e s1 with
-      | VBool b -> 
-          if b then eval_sexp e s2 else eval_sexp e s3
-      | _ -> raise (EvalFailure "Guard of if-expression must be a boolean."))
-  | Call (If, _) -> raise (EvalFailure "If must have exactly three arguments.")
-  | Call (p, ss) -> 
-      let vs = List.map (eval_sexp e) ss in
-        (match p, vs with
-        | Plus, [VNum n1; VNum n2] -> VNum (n1 + n2)
-        | Minus, [VNum n1; VNum n2] -> VNum (n1 - n2)
-        | Times, [VNum n1; VNum n2] -> VNum (n1 * n2)
-        | Divide, [VNum n1; VNum n2] -> VNum (n1 / n2)
-        | And, [VBool b1; VBool b2] -> VBool (b1 && b2)
-        | Or, [VBool b1; VBool b2] -> VBool (b1 || b2)
-        | Eq, [v1; v2] -> VBool (v1 = v2)
-        | Less, [VNum n1; VNum n2] -> VBool (n1 < n2)
-        | _ -> raise (EvalFailure "Primitive operator without correct arguments."))
-  | App (s1, [s2]) ->
-        (match eval_sexp e s1 with
-        | VClo (x, bdy, e') -> 
-            let v2 = eval_sexp e s2 in
-              let e'' = (x, v2) :: e' @ e in
-                eval_sexp e'' bdy
-        | _ -> raise (EvalFailure "Operator of application must be a lambda."))
-  | _ -> raise (EvalFailure (string_of_sexp s))
+  | Num _ | Bool _ | Lambda _ -> true
+  | _                         -> false
 
-let eval_form (e:env) (f:form) : sval * env =
-  match f with
-  | Define (x, s) -> 
-      let v = eval_sexp e s in 
-        (v, (x, v) :: e)
-  | Expr s ->
-      (eval_sexp e s, e)
+(**
+    [subst v x t] returns the expression obtained from [t] after substituting
+    every occurrence of [x] by [v].  
 
-let rec eval_prog (e:env) (p:prog) : sval list * env =
-  match p with
-  | [] -> ([], e)
-  | f::fs -> 
-      let v, e' = eval_form e f in 
-        let vs, e'' = eval_prog e' fs in
-          (v::vs, e'')
+    NOTE: substitution may incur variable capture!  Strange behaviour may result.
+    Take COMS30040: Types and Lambda Calculus in year 3 to make sense of this.
+*)
+let rec subst (v:sexp) (x:var) (t:sexp) : sexp =
+  match t with
+  | Bool _ -> t
+  | Num _ -> t
+  | Ident y when x = y -> v
+  | Ident _ -> t
+  | Call (p, args) -> Call (p, List.map (subst v x) args)
+  | App (s1, s2) -> App (subst v x s1, subst v x s2)
+  | Lambda (y, s) -> Lambda (y, subst v x s)
+
+(** [raise_eval_error s] raises [Failure] with a runtime error message *)
+let raise_eval_error s =
+  let str = string_of_sexp s in
+  let msg = "RUNTIME ERROR: Evaluation undefined for " ^ str ^ "." in
+  failwith msg
+    
+
+(** 
+    [step_sexp e s] evaluates a step of expression [s] in store [e] according 
+    to the operational semantics.
+
+    @raises [Failure] if [s] cannot make a step in store [e].
+*)
+let rec step_sexp (e:store) (s:sexp) : sexp =
+  match s with
+
+  (* Top-level identifiers *)
+  | Ident x when List.mem_assoc x e -> List.assoc x e
+  
+  (* If is a rather special primitive operator, because we don't evaluate 
+     its arguments -- i.e. the branches -- until we know which one is taken *)
+  | Call (If, [Bool true; s2; _]) -> s2
+  | Call (If, [Bool false; _; s3]) -> s3
+  | Call (If, [s1; s2; s3]) when not (is_value s1) -> 
+      let s1' = step_sexp e s1 in
+      Call (If, [s1'; s2; s3])
+  
+  (* Primitive binary operators *)
+  | Call (p, [s1; s2]) when not (is_value s1) -> 
+      let s1' = step_sexp e s1 in
+      Call (p, [s1'; s2])
+  | Call (p, [v1; s2]) when not (is_value s2) ->
+      let s2' = step_sexp e s2 in
+      Call (p, [v1; s2'])
+  | Call (Plus, [Num n; Num m]) -> Num (n + m)
+  | Call (Minus, [Num n1; Num n2]) -> Num (n1 - n2)
+  | Call (Times, [Num n1; Num n2]) -> Num (n1 * n2)
+  | Call (Divide, [Num n1; Num n2]) -> Num (n1 / n2)
+  | Call (And, [Bool b1; Bool b2]) -> Bool (b1 && b2)
+  | Call (Or, [Bool b1; Bool b2]) -> Bool (b1 || b2)
+  | Call (Less, [Num n1; Num n2]) -> Bool (n1 < n2)
+  | Call (Eq, [v1; v2]) -> Bool (v1 = v2)
+  
+  (* Primitive unary operators *)
+  | Call (p, [t]) when not (is_value t) ->
+      let t' = step_sexp e t in
+      Call (p, [t'])
+  | Call (Not, [Bool b]) -> Bool (not b)
+
+  (* Application of user defined functions *)
+  | App (s1, s2) when not (is_value s1) ->
+      let s1' = step_sexp e s1 in
+      App (s1', s2)
+  | App (Lambda (x, t), s2) when not (is_value s2) ->
+      let s2' = step_sexp e s2 in
+      App (Lambda (x, t), s2')
+  | App (Lambda (x, t), v) -> subst v x t
+
+  (* Runtime exception *)
+  | _ -> raise_eval_error s
+
+
+(** 
+    [step_form e f] makes a step of form [f] with respect to store [e]. 
+    @raises [Failure] if evaluation gets stuck.
+*)
+let step_form (e:store) (f:form) : form =
+    match f with
+    | Expr s when not (is_value s) -> 
+        let s' = step_sexp e s in
+        Expr s'
+    | Define (x, s) when not (is_value s) ->
+        let s' = step_sexp e s in
+        Define (x, s')
+    | _ -> failwith "Impossible: step_form of a value."

@@ -1,35 +1,42 @@
-open Scheme.Parser
-open Scheme.Eval
+open Brischeme.Ast
+open Brischeme.Parser
+open Brischeme.Eval
 
-(** [string_of_sval v] returns a string representation of [v], where  
-    [v] is typically a value computed by the semantics *)
-let string_of_sval (v:sval) =
-  match v with
-  | VNum n -> string_of_int n
-  | VBool b -> if b then "#t" else "#f"
-  | VClo _ -> "<function>"
+(** 
+    [ep_form e f] evaluates the form [f] in store [e], returning
+    an updated store.  Additionally, if [f] is an expression then 
+    the value of the expression is printed to the console as a side effect. 
+*)
+let rec ep_form (e:store) (f:form) : store =
+  match f with
+  | Expr v when is_value v -> 
+      print_endline (string_of_sexp v); 
+      e
+  | Define (x, v) when is_value v -> 
+      (x, v) :: (List.remove_assoc x e)
+  | _ -> ep_form e (step_form e f)
 
-(** [repl e] implements a read-eval-print-loop (REPL), looping until 
+(** 
+    [repl e] implements a read-eval-print-loop (REPL), looping until 
     the end-of-file signal is given by e.g. the user pressing ctrl-d.  
     The evaluation part of the loop is with respect to the initial 
-    environment [e]. *)
-let rec repl (e:env) =
+    store [e]. 
+*)
+let rec repl (e:store) =
   try 
-      print_string "> ";
-      let inp = read_line () in
-        let ast = parse inp in
-          (* The program [ast] is essentially a list of "forms", which are
-             definitions or expressions to be evaluated.  Here [vs] is the 
-             list of values obtained from evaluating each of the expressions
-             in turn and [e'] is the updated environment that takes into account 
-             the new definitions. *)   
-          let vs, e' = eval_prog e ast in
-            List.iter (fun v -> print_endline (string_of_sval v)) vs;
-            repl e'
+    print_string "> ";
+    let inp = read_line () in
+    let forms = parse_prog inp in
+    (* evaluate and print each form in turn, returning the final store [e'] *)
+    let e' = List.fold_left ep_form e forms in
+    repl e'
   with
-  | End_of_file -> print_endline "\nExiting"
+  | End_of_file -> ()
+  | Failure msg -> 
+      print_endline msg;
+      repl e
 
-(** This is effectively the entry point of the program. *)
+(* This is effectively the entry point of the program. *)
 let () = 
   print_endline "Brischeme";
   repl []
