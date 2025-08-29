@@ -57,13 +57,11 @@ let rec step_sexp (e:store) (s:sexp) : sexp =
       let s1' = step_sexp e s1 in
       Call (If, [s1'; s2; s3])
   
-  (* Primitive binary operators *)
-  | Call (p, [s1; s2]) when not (is_value s1) -> 
-      let s1' = step_sexp e s1 in
-      Call (p, [s1'; s2])
-  | Call (p, [v1; s2]) when not (is_value s2) ->
-      let s2' = step_sexp e s2 in
-      Call (p, [v1; s2'])
+  (* Primitive operators *)
+  | Call (p, ss) when not (List.for_all is_value ss) -> 
+      let ss' = step_sexp_list e ss in
+      Call (p, ss')
+  | Call (Not, [Bool b]) -> Bool (not b)
   | Call (Plus, [Num n; Num m]) -> Num (n + m)
   | Call (Minus, [Num n1; Num n2]) -> Num (n1 - n2)
   | Call (Times, [Num n1; Num n2]) -> Num (n1 * n2)
@@ -72,12 +70,6 @@ let rec step_sexp (e:store) (s:sexp) : sexp =
   | Call (Or, [Bool b1; Bool b2]) -> Bool (b1 || b2)
   | Call (Less, [Num n1; Num n2]) -> Bool (n1 < n2)
   | Call (Eq, [v1; v2]) -> Bool (v1 = v2)
-  
-  (* Primitive unary operators *)
-  | Call (p, [t]) when not (is_value t) ->
-      let t' = step_sexp e t in
-      Call (p, [t'])
-  | Call (Not, [Bool b]) -> Bool (not b)
 
   (* Application of user defined functions *)
   | App (s1, s2) when not (is_value s1) ->
@@ -91,6 +83,18 @@ let rec step_sexp (e:store) (s:sexp) : sexp =
   (* Runtime exception *)
   | _ -> raise_eval_error s
 
+(**
+  [step_sexp_list e ss] evaluates, from left to right, a step of a 
+  list of expressions, i.e. the result is a new list of expressions [ss']:
+    - if [ss] contains no expression that is not a value, then [ss' = ss].
+    - otherwise [ss'] is obtained by making a step in the leftmost 
+      non-value expression in [ss], all others remain fixed.
+*)
+and step_sexp_list (e:store) (ss:sexp list) : sexp list =
+  match ss with
+  | [] -> []
+  | s :: tt when not (is_value s) -> step_sexp e s :: tt
+  | v :: tt -> v :: step_sexp_list e tt
 
 (** 
     [step_form e f] makes a step of form [f] with respect to store [e]. 
