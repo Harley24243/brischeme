@@ -22,6 +22,7 @@ type form =
 
 (** A [sexp] is an expression to be evaluated. *)
 and sexp =
+  | Nil
   | Bool of bool
   | Num of int
   | Ident of string
@@ -63,6 +64,7 @@ let rec string_of_form (f:form) : string =
 (** [string_of_sexp e] is the string representation of expression [e]. *)
 and string_of_sexp (e:sexp) : string =
   match e with
+  | Nil -> "'()"
   | Bool b -> if b then "#t" else "#f"
   | Num n -> Printf.sprintf "%d" n
   | Ident s -> Printf.sprintf "%s" s

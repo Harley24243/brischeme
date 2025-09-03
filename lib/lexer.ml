@@ -2,6 +2,7 @@ open Ast
 
 (** [lit] is an enumeration of language literals *)
 type literal =
+  | LNil
   | LBool of bool
   | LNum of int
 
@@ -82,6 +83,21 @@ let lex_bool () : token =
   | _ -> 
       raise_lex_error "t or f"
 
+let lex_nil () : token =
+  (* Assumes [peek () = '\''] *)
+  drop ();
+  match peek () with
+  | '(' ->
+      begin
+        drop ();
+        match peek () with
+        | ')' -> 
+            drop ();
+            TkLit LNil
+        | _ -> raise_lex_error "expected nil"
+      end
+  | _ -> raise_lex_error "expected nil"
+
 let lex_number () : token  =
   let lexeme = ref "" in
   while is_more () && is_digit (peek ()) do
@@ -117,16 +133,16 @@ let lex_init () =
   match peek () with
   | '=' -> 
     drop (); 
-    TkPrimOp Eq;
+    TkPrimOp Eq
   | '<' ->
     drop ();
-    TkPrimOp Less;
+    TkPrimOp Less
   | '+' ->
     drop ();
-    TkPrimOp Plus;
+    TkPrimOp Plus
   | '-' ->
     drop ();
-    TkPrimOp Minus;
+    TkPrimOp Minus
   | '*' ->
     drop ();
     TkPrimOp Times
@@ -139,6 +155,7 @@ let lex_init () =
   | ')' ->
     drop ();
     TkRParen
+  | '\'' -> lex_nil ()
   | '#' -> lex_bool ()
   | c when is_digit c -> lex_number ()
   | c when is_lower c -> lex_kw_or_id ()
@@ -169,6 +186,7 @@ let lex (s:string) : token list =
 (** [string_of_literal l] returns the string representation of literal l *)
 let string_of_lit l =
   match l with
+  | LNil -> "'()"
   | LBool true -> "#t"
   | LBool false -> "#f"
   | LNum n -> string_of_int n
