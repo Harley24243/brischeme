@@ -25,9 +25,9 @@ and sexp =
   | Bool of bool
   | Num of int
   | Ident of string
-  | Lambda of var * sexp
+  | Lambda of var list * sexp
   | Call of primop * sexp list
-  | App of sexp * sexp
+  | App of sexp * sexp list
 
 (** A [prog] is just a list of [form]. *)
 type prog = form list
@@ -66,9 +66,19 @@ and string_of_sexp (e:sexp) : string =
   | Bool b -> if b then "#t" else "#f"
   | Num n -> Printf.sprintf "%d" n
   | Ident s -> Printf.sprintf "%s" s
-  | Lambda (v, e) -> Printf.sprintf "(lambda (%s) %s)" v (string_of_sexp e)
-  | Call (p, es) -> Printf.sprintf "(%s %s)" (string_of_primop p) (string_of_sexp_list es)
-  | App (e1, e2) -> Printf.sprintf "(%s %s)" (string_of_sexp e1) (string_of_sexp e2)
+  | Lambda (vs, e) -> 
+      Printf.sprintf "(lambda (%s) %s)" (string_of_var_list vs) (string_of_sexp e)
+  | Call (p, es) -> 
+      Printf.sprintf "(%s %s)" (string_of_primop p) (string_of_sexp_list es)
+  | App (e, es) -> 
+      Printf.sprintf "(%s %s)" (string_of_sexp e) (string_of_sexp_list es)
+
+(** [string_of_var_list vs] is the string representation of variable list [vs] *)
+and string_of_var_list (vs: var list) : string =
+  match vs with
+  | [] -> ""
+  | [s] -> s
+  | s :: ts -> Printf.sprintf "%s %s" s (string_of_var_list ts)
 
 (** 
     [string_of_sexp_list es] is the string representation of 
@@ -77,7 +87,8 @@ and string_of_sexp (e:sexp) : string =
 and string_of_sexp_list (es:sexp list) : string =
   match es with
   | [] -> ""
-  | e::es -> Printf.sprintf "%s %s" (string_of_sexp e) (string_of_sexp_list es)
+  | [e] -> string_of_sexp e
+  | e :: es -> Printf.sprintf "%s %s" (string_of_sexp e) (string_of_sexp_list es)
 
 (** 
     [string_of_prog p] is the string representation of program [p]. It is essentially

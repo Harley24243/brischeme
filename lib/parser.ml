@@ -28,20 +28,16 @@ let eat (tk:token) =
   else 
     raise_parse_error (string_of_token tk)
 
+let eat_lit () : sexp =
+  match peek () with
+  | TkLit (LBool b) -> drop (); Bool b
+  | TkLit (LNum n)  -> drop (); Num n
+  | _ -> raise_parse_error "literal"
+
 let eat_ident () : string =
   match peek () with 
   | TkIdent s -> drop (); s
   | _         -> raise_parse_error "identifier"
-
-let eat_num () : int =
-  match peek () with
-  | TkNum n -> drop (); n
-  | _       -> raise_parse_error "number"
-
-let eat_bool () : bool =
-  match peek () with
-  | TkBool b -> drop (); b
-  | _       -> raise_parse_error "boolean"
 
 let eat_primop () : primop =
   match peek () with
@@ -53,7 +49,7 @@ let eat_primop () : primop =
 let rec prog () : prog = 
   match peek () with
   | TkEnd -> []
-  | TkLParen | TkIdent _ | TkNum _ | TkBool _ -> 
+  | TkLParen | TkLit _ | TkIdent _ -> 
       let frm = form () in
       let prg = prog () in 
       frm :: prg
@@ -66,7 +62,7 @@ and form () : form =
       let f = exprOrDefn () in 
       eat TkRParen; 
       f
-  | TkIdent _ | TkNum _ | TkBool _ -> Expr (atom ())
+  | TkIdent _ | TkLit _ -> Expr (atom ())
   | _ -> raise_parse_error "form"
 
 and exprOrDefn () : form =
@@ -81,16 +77,20 @@ and exprOrDefn () : form =
 
 and atom () : sexp =
   match peek () with
+  | TkLit _ -> eat_lit ()
   | TkIdent _ -> 
       let s = eat_ident () in
       Ident s
-  | TkNum _ -> 
-      let n = eat_num () in 
-      Num n
-  | TkBool _ -> 
-      let b = eat_bool () in
-      Bool b
   | _ -> raise_parse_error "atom"
+
+and ident_list () : var list =
+  match peek () with
+  | TkIdent _ -> 
+      let s = eat_ident () in
+      let ts = ident_list () in
+      s :: ts
+  | TkRParen -> []
+  | _ -> raise_parse_error "ident list"
 
 and sexpr () : sexp =
   match peek () with
@@ -98,12 +98,12 @@ and sexpr () : sexp =
       eat TkLParen;
       let e = expr () in
       eat TkRParen; e
-  | TkIdent _ | TkNum _ | TkBool _ -> atom ()
+  | TkIdent _ | TkLit _ -> atom ()
   | _ -> raise_parse_error "s-expression"
 
 and sexpr_list () : sexp list =
   match peek () with
-  | TkLParen | TkIdent _ | TkNum _ | TkBool _ -> 
+  | TkLParen | TkIdent _ | TkLit _ -> 
       let e = sexpr () in
       let es = sexpr_list () in
       e :: es
@@ -112,17 +112,17 @@ and sexpr_list () : sexp list =
 
 and expr () : sexp =
   match peek () with
-  | TkLParen | TkIdent _ | TkNum _ | TkBool _ -> 
-      let e1 = sexpr () in
-      let e2 = sexpr () in
-      App (e1, e2)
+  | TkLParen | TkIdent _ | TkLit _ -> 
+      let s = sexpr () in
+      let ss = sexpr_list () in
+      App (s, ss)
   | TkLambda ->
       eat TkLambda;
       eat TkLParen;
-      let s = eat_ident () in
+      let ss = ident_list () in
       eat TkRParen;
       let e = sexpr () in
-      Lambda (s, e)
+      Lambda (ss, e)
   | TkPrimOp _ ->
       let p = eat_primop () in
       let es = sexpr_list () in

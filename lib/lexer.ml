@@ -1,10 +1,14 @@
 open Ast
 
+(** [lit] is an enumeration of language literals *)
+type literal =
+  | LBool of bool
+  | LNum of int
+
 (** [token] is an enumeration of all possible tokens produced by the lexer *)
 type token =
+  | TkLit of literal
   | TkIdent of string
-  | TkNum of int
-  | TkBool of bool
   | TkLParen
   | TkRParen
   | TkDefine
@@ -33,6 +37,9 @@ let raise_lex_error exp =
   let msg = Printf.sprintf "LEX ERROR: Expected %s but found %c." exp c in
   failwith msg
 
+let eat (c:char) =
+  if peek () = c then drop () else raise_lex_error (String.make 1 c)
+
 (* Recognising character classes *)
 
 let is_digit (c:char) : bool =
@@ -55,6 +62,11 @@ let is_wspace (c:char) : bool =
   | ' ' | '\n' | '\r' -> true
   | _                 -> false
 
+let is_punctuation (c:char) : bool =
+  match c with
+  | '!' | '?' | '_' -> true
+  | _               -> false
+
 (* Lexing functions *)
 
 let lex_bool () : token =
@@ -63,10 +75,10 @@ let lex_bool () : token =
   match peek () with
   | 't' -> 
       drop (); 
-      TkBool true;
+      TkLit (LBool true);
   | 'f' -> 
       drop ();
-      TkBool false;
+      TkLit (LBool false);
   | _ -> 
       raise_lex_error "t or f"
 
@@ -77,13 +89,14 @@ let lex_number () : token  =
       drop ();
       lexeme := !lexeme ^ String.make 1 c
   done;
-  TkNum (int_of_string !lexeme)
+  TkLit (LNum (int_of_string !lexeme))
 
 let lex_kw_or_id () : token =
   let lexeme = ref "" in
   let is_id_char c = 
-        is_lower c || is_upper c 
+    is_lower c || is_upper c || is_punctuation c || is_digit c
   in
+  (* assumes the first char is correctly lowercase *)
   while is_more () && is_id_char (peek ()) do
     let c = peek () in
     drop ();
@@ -125,7 +138,7 @@ let lex_init () =
     TkLParen
   | ')' ->
     drop ();
-    TkRParen;
+    TkRParen
   | '#' -> lex_bool ()
   | c when is_digit c -> lex_number ()
   | c when is_lower c -> lex_kw_or_id ()
@@ -153,17 +166,22 @@ let lex (s:string) : token list =
 
 (* Conversion of token to a string, for debugging purposes. *)
 
+(** [string_of_literal l] returns the string representation of literal l *)
+let string_of_lit l =
+  match l with
+  | LBool true -> "#t"
+  | LBool false -> "#f"
+  | LNum n -> string_of_int n
+
 (** [string_of_token tk] returns the string representation of [tk]. 
     Note: this is not necessarily the lexeme from which [tk] was obtained. *)
 let string_of_token tk =
   match tk with
-  | TkIdent s -> s
-  | TkNum n -> string_of_int n
-  | TkBool true -> "#t"
-  | TkBool false -> "#f"
-  | TkLParen -> "("
-  | TkRParen -> ")"
-  | TkDefine -> "define"
-  | TkLambda -> "lambda"
+  | TkLit l    -> string_of_lit l
+  | TkIdent s  -> s
+  | TkLParen   -> "("
+  | TkRParen   -> ")"
+  | TkDefine   -> "define"
+  | TkLambda   -> "lambda"
   | TkPrimOp p -> string_of_primop p
-  | TkEnd -> "EOF"
+  | TkEnd      -> "EOF"

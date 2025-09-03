@@ -14,21 +14,20 @@ let is_value (s:sexp) : bool =
   | _                         -> false
 
 (**
-    [subst v x t] returns the expression obtained from [t] after substituting
-    every occurrence of [x] by [v].  
+    [subst [(x_1, v_1); ...; (x_n, v_n)] t] returns the expression obtained 
+    from [t] after substituting every occurrence of [x_i] by [v_i].  
 
     NOTE: substitution may incur variable capture!  Strange behaviour may result.
     Take COMS30040: Types and Lambda Calculus in year 3 to make sense of this.
 *)
-let rec subst (v:sexp) (x:var) (t:sexp) : sexp =
+let rec subst (sub: (var * sexp) list) (t:sexp) : sexp =
   match t with
-  | Bool _ -> t
-  | Num _ -> t
-  | Ident y when x = y -> v
+  | Bool _ | Num _ -> t
+  | Ident y when List.mem_assoc y sub -> List.assoc y sub
   | Ident _ -> t
-  | Call (p, args) -> Call (p, List.map (subst v x) args)
-  | App (s1, s2) -> App (subst v x s1, subst v x s2)
-  | Lambda (y, s) -> Lambda (y, subst v x s)
+  | Call (p, args) -> Call (p, List.map (subst sub) args)
+  | App (s, ss) -> App (subst sub s, List.map (subst sub) ss)
+  | Lambda (ys, s) -> Lambda (ys, subst sub s)
 
 (** [raise_eval_error s] raises [Failure] with a runtime error message *)
 let raise_eval_error s =
@@ -72,13 +71,15 @@ let rec step_sexp (e:store) (s:sexp) : sexp =
   | Call (Eq, [v1; v2]) -> Bool (v1 = v2)
 
   (* Application of user defined functions *)
-  | App (s1, s2) when not (is_value s1) ->
-      let s1' = step_sexp e s1 in
-      App (s1', s2)
-  | App (Lambda (x, t), s2) when not (is_value s2) ->
-      let s2' = step_sexp e s2 in
-      App (Lambda (x, t), s2')
-  | App (Lambda (x, t), v) -> subst v x t
+  | App (s, ss) when not (is_value s) ->
+      let s' = step_sexp e s in
+      App (s', ss)
+  | App (Lambda (xs, t), ss) when not (List.for_all is_value ss) ->
+      let ss' = step_sexp_list e ss in
+      App (Lambda (xs, t), ss')
+  | App (Lambda (xs, t), vs) -> 
+      let subst_pairs = List.combine xs vs in
+      subst subst_pairs t
 
   (* Runtime exception *)
   | _ -> raise_eval_error s
