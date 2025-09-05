@@ -10,7 +10,7 @@ type store = (var * sexp) list
 (** [is_value s] is true just if [s] is a value *)
 let is_value (s:sexp) : bool =
   match s with
-  | Num _ | Bool _ | Lambda _ | Nil -> true
+  | Num _ | Bool _ | Lambda _ -> true
   | _                         -> false
 
 (**
@@ -22,12 +22,12 @@ let is_value (s:sexp) : bool =
 *)
 let rec subst (sub: (var * sexp) list) (t:sexp) : sexp =
   match t with
-  | Bool _ | Num _ | Nil -> t
   | Ident y when List.mem_assoc y sub -> List.assoc y sub
   | Ident _ -> t
   | Call (p, args) -> Call (p, List.map (subst sub) args)
   | App (s, ss) -> App (subst sub s, List.map (subst sub) ss)
   | Lambda (ys, s) -> Lambda (ys, subst sub s)
+  | _ -> t (* This is bad style, but it will make the exercises easier *)
 
 (** [raise_eval_error s] raises [Failure] with a runtime error message *)
 let raise_eval_error s =

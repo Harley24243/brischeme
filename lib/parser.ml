@@ -30,7 +30,6 @@ let eat (tk:token) =
 
 let eat_lit () : sexp =
   match peek () with
-  | TkLit LNil -> drop (); Nil
   | TkLit (LBool b) -> drop (); Bool b
   | TkLit (LNum n)  -> drop (); Num n
   | _ -> raise_parse_error "literal"
