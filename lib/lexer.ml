@@ -67,6 +67,9 @@ let is_punctuation (c:char) : bool =
   | '!' | '?' | '_' -> true
   | _               -> false
 
+let is_id_char (c:char) : bool = 
+  is_lower c || is_upper c || is_punctuation c || is_digit c
+
 (* Lexing functions *)
 
 let lex_bool () : token =
@@ -93,9 +96,6 @@ let lex_number () : token  =
 
 let lex_kw_or_id () : token =
   let lexeme = ref "" in
-  let is_id_char c = 
-    is_lower c || is_upper c || is_punctuation c || is_digit c
-  in
   (* assumes the first char is correctly lowercase *)
   while is_more () && is_id_char (peek ()) do
     let c = peek () in
