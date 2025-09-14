@@ -42,7 +42,7 @@ let eat_ident () : string =
 let eat_primop () : primop =
   match peek () with
   | TkPrimOp p -> drop (); p
-  | _          -> raise_parse_error "primop"
+  | _          -> raise_parse_error "primop" 
 
 (* Parsing functions corresponding to each nonterminal. *)
 
@@ -59,13 +59,13 @@ and form () : form =
   match peek () with
   | TkLParen -> 
       eat TkLParen; 
-      let f = exprOrDefn () in 
+      let f = cform () in 
       eat TkRParen; 
       f
   | TkIdent _ | TkLit _ -> Expr (atom ())
   | _ -> raise_parse_error "form"
 
-and exprOrDefn () : form =
+and cform () : form =
   match peek () with
   | TkDefine -> 
       eat TkDefine;
