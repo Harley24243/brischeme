@@ -16,15 +16,15 @@ type token =
   | TkPrimOp of primop
   | TkEnd
 
-(* Lexer internal state *)
+(* Input string state *)
 
 let idx = ref 0
 let input = ref ""
-let input_len = ref 0
 
-(* Simple API for lexer internal state *)
+(* Simple API for input stringis state *)
 
-let is_more () : bool = !idx < !input_len
+let is_more () : bool = 
+  !idx < String.length !input
 
 let peek () : char =
   !input.[!idx]
@@ -152,7 +152,6 @@ let lex_init () =
 *)
 let lex (s:string) : token list =
   input := s;
-  input_len := String.length s;
   idx := 0;
   let output = ref [] in
   while is_more () do 
