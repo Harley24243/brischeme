@@ -1,7 +1,4 @@
 
-(** [var] is a type synonym for [string] *)
-type var = string
-
 (** [primop] is an enumeration of the available primitive operations. *)
 type primop =
   | Plus
@@ -17,7 +14,7 @@ type primop =
 
 (** A [form] is either a top-level definition or an expression to be evaluated .*)
 type form =
-  | Define of var * sexp
+  | Define of string * sexp
   | Expr of sexp
 
 (** A [sexp] is an expression to be evaluated. *)
@@ -25,7 +22,7 @@ and sexp =
   | Bool of bool
   | Num of int
   | Ident of string
-  | Lambda of var list * sexp
+  | Lambda of string list * sexp
   | Call of primop * sexp list
   | App of sexp * sexp list
 
@@ -74,7 +71,7 @@ and string_of_sexp (e:sexp) : string =
       Printf.sprintf "(%s %s)" (string_of_sexp e) (string_of_sexp_list es)
 
 (** [string_of_var_list vs] is the string representation of variable list [vs] *)
-and string_of_var_list (vs: var list) : string =
+and string_of_var_list (vs: string list) : string =
   match vs with
   | [] -> ""
   | [s] -> s

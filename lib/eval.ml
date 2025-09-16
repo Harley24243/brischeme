@@ -5,7 +5,7 @@ open Ast
     expression.  We require that [v] is moreover a value, but this is not
     enforced by the types. 
 *)
-type store = (var * sexp) list
+type store = (string * sexp) list
 
 (** [is_value s] is true just if [s] is a value *)
 let is_value (s:sexp) : bool =
@@ -20,7 +20,7 @@ let is_value (s:sexp) : bool =
     NOTE: substitution may incur variable capture!  Strange behaviour may result.
     Take COMS30040: Types and Lambda Calculus in year 3 to make sense of this.
 *)
-let rec subst (sub: (var * sexp) list) (t:sexp) : sexp =
+let rec subst (sub: (string * sexp) list) (t:sexp) : sexp =
   match t with
   | Ident y when List.mem_assoc y sub -> List.assoc y sub
   | Ident _ -> t

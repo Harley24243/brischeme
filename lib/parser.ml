@@ -83,7 +83,7 @@ and atom () : sexp =
       Ident s
   | _ -> raise_parse_error "atom"
 
-and ident_list () : var list =
+and ident_list () : string list =
   match peek () with
   | TkIdent _ -> 
       let s = eat_ident () in
