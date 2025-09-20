@@ -1,0 +1,1 @@
+socat READLINE EXEC:"dune exec brischeme"
