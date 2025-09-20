@@ -31,7 +31,8 @@ let rec repl (e:store) =
     let e' = List.fold_left ep_form e forms in
     repl e'
   with
-  | End_of_file -> ()
+  | End_of_file ->
+      print_newline ()
   | Failure msg -> 
       print_endline msg;
       repl e
