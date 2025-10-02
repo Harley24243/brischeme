@@ -13,6 +13,13 @@ let is_value (s:sexp) : bool =
   | Num _ | Bool _ | Lambda _ -> true
   | _                         -> false
 
+
+let rec sum_num_values (vs : sexp list) : int =
+  match vs with
+  | [] -> 0
+  | (Num n) :: ws -> n + sum_num_values ws
+  | _ -> failwith "Sexp in the list is not a number value."
+
 (**
     [subst [(x_1, v_1); ...; (x_n, v_n)] t] returns the expression obtained 
     from [t] after substituting every occurrence of [x_i] by [v_i].  
@@ -61,7 +68,7 @@ let rec step_sexp (e:store) (s:sexp) : sexp =
       let ss' = step_sexp_list e ss in
       Call (p, ss')
   | Call (Not, [Bool b]) -> Bool (not b)
-  | Call (Plus, [Num n; Num m]) -> Num (n + m)
+  | Call (Plus, vs) -> Num (sum_num_values vs)
   | Call (Minus, [Num n1; Num n2]) -> Num (n1 - n2)
   | Call (Times, [Num n1; Num n2]) -> Num (n1 * n2)
   | Call (Divide, [Num n1; Num n2]) -> Num (n1 / n2)

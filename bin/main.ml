@@ -40,7 +40,10 @@ let rec repl (e:store) =
 (* This is effectively the entry point of the program. *)
 let () = 
   print_endline "Brischeme";
-  repl []
+  let prel = In_channel.with_open_bin "prelude.bs" In_channel.input_all in
+  let forms = parse_prog prel in
+  let e = List.fold_left ep_form [] forms in
+  repl e
   
 
   

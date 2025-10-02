@@ -1,0 +1,8 @@
+1.  (define mod (lambda (x y) (if (< x y) x (mod (- x y) y))))
+
+2.  (define gcd (lambda (x y) (if (= y 0) x (gcd y (mod x y)))))
+
+3.  (a) Parsing doesn't depend on current store.
+        Evaluation and printing does.
+    (b) Empty list (no store given)
+    (c) e'
