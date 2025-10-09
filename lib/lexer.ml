@@ -13,6 +13,7 @@ type token =
   | TkRParen
   | TkDefine
   | TkLambda
+  | TkUse
   | TkPrimOp of primop
   | TkEnd
 
@@ -85,6 +86,16 @@ let lex_bool () : token =
   | _ -> 
       raise_lex_error "t or f"
 
+let lex_le_or_leq () : token =
+  (* Assumes [peek () = '<'] *)
+  drop (); 
+  match peek () with
+  | '=' -> 
+      drop (); 
+      TkPrimOp Leq
+  | _ -> 
+      TkPrimOp Less
+
 let lex_number () : token  =
   let lexeme = ref "" in
   while is_more () && is_digit (peek ()) do
@@ -110,7 +121,11 @@ let lex_kw_or_id () : token =
   | "not"    -> TkPrimOp Not
   | "and"    -> TkPrimOp And
   | "or"     -> TkPrimOp Or
+  | "cons"   -> TkPrimOp Cons
+  | "car"    -> TkPrimOp Car
+  | "cdr"    -> TkPrimOp Cdr
   | "lambda" -> TkLambda
+  | "use"    -> TkUse
   | _        -> TkIdent !lexeme
   
 let lex_init () =
@@ -118,9 +133,7 @@ let lex_init () =
   | '=' -> 
     drop (); 
     TkPrimOp Eq
-  | '<' ->
-    drop ();
-    TkPrimOp Less
+  | '<' -> lex_le_or_leq ()
   | '+' ->
     drop ();
     TkPrimOp Plus
@@ -182,5 +195,6 @@ let string_of_token tk =
   | TkRParen   -> ")"
   | TkDefine   -> "define"
   | TkLambda   -> "lambda"
+  | TkUse      -> "use"
   | TkPrimOp p -> string_of_primop p
   | TkEnd      -> "EOF"

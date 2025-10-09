@@ -72,6 +72,10 @@ and cform () : form =
       let s = eat_ident () in
       let e = sexpr () in
       Define (s, e)
+  | TkUse ->
+      eat TkUse;
+      let s = eat_ident () in
+      Use s
   | TkLParen | TkIdent _ | TkLambda | TkPrimOp _ -> Expr (expr ())
   | _ -> raise_parse_error "expression or definition"
 

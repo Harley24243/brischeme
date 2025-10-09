@@ -1,0 +1,2 @@
+(define x 3)
+(define f (lambda (x) (* x x)))

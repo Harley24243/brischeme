@@ -11,10 +11,15 @@ type primop =
   | And
   | Or
   | Not
+  | Leq
+  | Cons
+  | Car
+  | Cdr
 
 (** A [form] is either a top-level definition or an expression to be evaluated .*)
 type form =
   | Define of string * sexp
+  | Use of string
   | Expr of sexp
 
 (** A [sexp] is an expression to be evaluated. *)
@@ -50,11 +55,16 @@ let string_of_primop (p:primop) : string =
   | Less   -> "less"
   | Eq     -> "eq"
   | If     -> "if"
+  | Leq    -> "<="
+  | Cons   -> "cons"
+  | Car    -> "car"
+  | Cdr    -> "cdr"
 
 (** [string_of_form f] is the string representation of a form [f]. *)
 let rec string_of_form (f:form) : string = 
   match f with
   | Define (v, e) -> Printf.sprintf "(define %s %s)" v (string_of_sexp e)
+  | Use fn -> Printf.sprintf "(use %s)" fn
   | Expr e -> string_of_sexp e
 
 (** [string_of_sexp e] is the string representation of expression [e]. *)

@@ -8,9 +8,10 @@ open Ast
 type store = (string * sexp) list
 
 (** [is_value s] is true just if [s] is a value *)
-let is_value (s:sexp) : bool =
+let rec is_value (s:sexp) : bool =
   match s with
   | Num _ | Bool _ | Lambda _ -> true
+  | Call (Cons, [v1; v2]) when is_value v1 && is_value v2 -> true
   | _                         -> false
 
 
@@ -76,6 +77,9 @@ let rec step_sexp (e:store) (s:sexp) : sexp =
   | Call (Or, [Bool b1; Bool b2]) -> Bool (b1 || b2)
   | Call (Less, [Num n1; Num n2]) -> Bool (n1 < n2)
   | Call (Eq, [v1; v2]) -> Bool (v1 = v2)
+  | Call (Leq, [Num n1; Num n2]) -> Bool (n1 <= n2)
+  | Call (Car, [Call (Cons, [v1; _])]) -> v1
+  | Call (Cdr, [Call (Cons, [_; v2])]) -> v2
 
   (* Application of user defined functions *)
   | App (s, ss) when not (is_value s) ->

@@ -14,6 +14,11 @@ let rec ep_form (e:store) (f:form) : store =
       e
   | Define (x, v) when is_value v -> 
       (x, v) :: (List.remove_assoc x e)
+  | Use n -> 
+      let fn = n ^ ".bs" in
+      let file = In_channel.with_open_bin fn In_channel.input_all in
+      let forms = parse_prog file in
+      List.fold_left ep_form e forms
   | _ -> ep_form e (step_form e f)
 
 (** 
