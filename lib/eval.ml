@@ -10,7 +10,7 @@ type store = (string * sexp) list
 (** [is_value s] is true just if [s] is a value *)
 let rec is_value (s:sexp) : bool =
   match s with
-  | Num _ | Bool _ | Lambda _ -> true
+  | Num _ | Bool _ | Atom _ | Lambda _ -> true
   | Call (Cons, [v1; v2]) when is_value v1 && is_value v2 -> true
   | _                         -> false
 
@@ -21,6 +21,11 @@ let rec sum_num_values (vs : sexp list) : int =
   | (Num n) :: ws -> n + sum_num_values ws
   | _ -> failwith "Sexp in the list is not a number value."
 
+let rec init_list (vs : sexp list) : sexp =
+  match vs with
+  | [] -> Atom "nil"
+  | v :: ws -> Call (Cons, [v; init_list ws])
+  
 (**
     [subst [(x_1, v_1); ...; (x_n, v_n)] t] returns the expression obtained 
     from [t] after substituting every occurrence of [x_i] by [v_i].  
@@ -80,6 +85,7 @@ let rec step_sexp (e:store) (s:sexp) : sexp =
   | Call (Leq, [Num n1; Num n2]) -> Bool (n1 <= n2)
   | Call (Car, [Call (Cons, [v1; _])]) -> v1
   | Call (Cdr, [Call (Cons, [_; v2])]) -> v2
+  | Call (List, vs) -> init_list vs
 
   (* Application of user defined functions *)
   | App (s, ss) when not (is_value s) ->

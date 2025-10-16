@@ -32,6 +32,7 @@ let eat_lit () : sexp =
   match peek () with
   | TkLit (LBool b) -> drop (); Bool b
   | TkLit (LNum n)  -> drop (); Num n
+  | TkLit (LAtom s) -> drop (); Atom s
   | _ -> raise_parse_error "literal"
 
 let eat_ident () : string =

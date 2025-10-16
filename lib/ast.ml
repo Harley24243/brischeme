@@ -15,6 +15,7 @@ type primop =
   | Cons
   | Car
   | Cdr
+  | List
 
 (** A [form] is either a top-level definition or an expression to be evaluated .*)
 type form =
@@ -27,6 +28,7 @@ and sexp =
   | Bool of bool
   | Num of int
   | Ident of string
+  | Atom of string
   | Lambda of string list * sexp
   | Call of primop * sexp list
   | App of sexp * sexp list
@@ -59,6 +61,7 @@ let string_of_primop (p:primop) : string =
   | Cons   -> "cons"
   | Car    -> "car"
   | Cdr    -> "cdr"
+  | List   -> "list"
 
 (** [string_of_form f] is the string representation of a form [f]. *)
 let rec string_of_form (f:form) : string = 
@@ -73,6 +76,7 @@ and string_of_sexp (e:sexp) : string =
   | Bool b -> if b then "#t" else "#f"
   | Num n -> Printf.sprintf "%d" n
   | Ident s -> Printf.sprintf "%s" s
+  | Atom s -> Printf.sprintf "\'%s" s
   | Lambda (vs, e) -> 
       Printf.sprintf "(lambda (%s) %s)" (string_of_var_list vs) (string_of_sexp e)
   | Call (p, es) -> 

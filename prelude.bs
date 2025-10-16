@@ -1,2 +1,18 @@
 (define mod (lambda (x y) (if (< x y) x (mod (- x y) y))))
 (define gcd (lambda (x y) (if (= y 0) x (gcd y (mod x y)))))
+
+(define empty? (lambda (l) (= l 'nil)))
+(define map (lambda (f l) (
+    if (empty? l) 
+    'nil 
+    (cons (f (car l)) (map f (cdr l)))
+)))
+
+(define lookup (lambda (a l) (
+    if (empty? l) 
+    'not_found (
+        if (= a (car (car l))) 
+        (cdr (car l)) 
+        (lookup a (cdr l))
+    )
+)))

@@ -4,6 +4,7 @@ open Ast
 type literal =
   | LBool of bool
   | LNum of int
+  | LAtom of string
 
 (** [token] is an enumeration of all possible tokens produced by the lexer *)
 type token =
@@ -105,6 +106,17 @@ let lex_number () : token  =
   done;
   TkLit (LNum (int_of_string !lexeme))
 
+let lex_atom () : token =
+  (* Assumes [peek () = '\''] *)
+  drop ();
+  let lexeme = ref "" in
+  while is_more () && is_id_char (peek ()) do
+    let c = peek () in
+      drop ();
+      lexeme := !lexeme ^ String.make 1 c
+  done;
+  TkLit (LAtom !lexeme)
+
 let lex_kw_or_id () : token =
   let lexeme = ref "" in
   (* assumes the first char is correctly lowercase *)
@@ -124,6 +136,7 @@ let lex_kw_or_id () : token =
   | "cons"   -> TkPrimOp Cons
   | "car"    -> TkPrimOp Car
   | "cdr"    -> TkPrimOp Cdr
+  | "list"   -> TkPrimOp List
   | "lambda" -> TkLambda
   | "use"    -> TkUse
   | _        -> TkIdent !lexeme
@@ -153,6 +166,7 @@ let lex_init () =
     drop ();
     TkRParen
   | '#' -> lex_bool ()
+  | '\'' -> lex_atom ()
   | c when is_digit c -> lex_number ()
   | c when is_lower c -> lex_kw_or_id ()
   | _ -> raise_lex_error "valid character"
@@ -184,6 +198,7 @@ let string_of_lit l =
   | LBool true -> "#t"
   | LBool false -> "#f"
   | LNum n -> string_of_int n
+  | LAtom s -> "\'" ^ s
 
 (** [string_of_token tk] returns the string representation of [tk]. 
     Note: this is not necessarily the lexeme from which [tk] was obtained. *)
